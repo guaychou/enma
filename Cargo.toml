@@ -1,0 +1,28 @@
+[package]
+name = "enma"
+version = "0.2.3"
+authors = ["Kevin Harnata <kevin.harnata@gdn-commerce.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+actix-web ="4.0.0-beta.8"
+reqwest = { version = "0.11", features = ["json"] }
+figlet-rs = "0.1.3"
+log = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+serde_json = "1.0"
+serde_yaml = "0.8"
+structopt = "0.3.21"
+log4rs = "1.0.0"
+
+[profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+panic = 'abort'

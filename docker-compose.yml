@@ -1,0 +1,12 @@
+version: "3.9"
+services:
+  enma:
+    image: "lordchou/enma:v0.2.2"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./configuration:/app/config
+    command:
+      - ./enma
+      - --config.enma=./config/enma.yaml
+      - --config.log=./config/log4rs.yaml
