@@ -1,6 +1,6 @@
 [package]
 name = "enma"
-version = "0.2.4"
+version = "0.2.5"
 authors = ["Kevin Harnata <kevin.harnata@gdn-commerce.com>"]
 edition = "2018"
 

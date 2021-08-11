@@ -26,15 +26,9 @@ async fn throughput(req: web::Json<model::Request>, newrelic: web::Data<Newrelic
                             req.data.application_name.as_str(),
                             metric
                         );
-                        return HttpResponse::NotFound().json(model::Response {
-                            api_version: String::from("v1"),
-                            data: model::ResponseData { result: res },
-                        });
+                        return HttpResponse::NotFound().json(model::Response::default());
                     }
-                    HttpResponse::Ok().json(model::Response {
-                        api_version: String::from("v1"),
-                        data: model::ResponseData { result: res },
-                    })
+                    HttpResponse::Ok().json(model::Response::set_response(res))
                 }
                 None => {
                     warn!(
@@ -42,26 +36,17 @@ async fn throughput(req: web::Json<model::Request>, newrelic: web::Data<Newrelic
                         req.data.application_name.as_str(),
                         metric
                     );
-                    HttpResponse::NotFound().json(model::Response {
-                        api_version: String::from("v1"),
-                        data: model::ResponseData { result: 0.0 },
-                    })
+                    HttpResponse::NotFound().json(model::Response::default())
                 }
             },
             NewrelicQueryResult::Err(e) => {
                 error!("{:?}", e.get_error_msg());
-                HttpResponse::BadRequest().json(model::Response {
-                    api_version: String::from("v1"),
-                    data: model::ResponseData { result: 0.0 },
-                })
+                HttpResponse::BadRequest().json(model::Response::default())
             }
         },
         Err(e) => {
             error!("{:?}", e);
-            HttpResponse::BadGateway().json(model::Response {
-                api_version: String::from("v1"),
-                data: model::ResponseData { result: 0.0 },
-            })
+            HttpResponse::BadGateway().json(model::Response::default())
         }
     }
 }

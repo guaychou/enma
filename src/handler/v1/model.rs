@@ -14,12 +14,30 @@ pub struct Request {
 
 #[derive(Serialize, Deserialize, Debug)]
 
-pub struct ResponseData {
-    pub result: f32,
+struct ResponseData {
+    result: f32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Response {
-    pub api_version: String,
-    pub data: ResponseData,
+    api_version: String,
+    data: ResponseData,
+}
+
+impl Response {
+    pub fn set_response(res: f32) -> Self {
+        let data = ResponseData { result: res };
+        return Self {
+            api_version: String::from("v1"),
+            data: data,
+        };
+    }
+
+    pub fn default() -> Self {
+        let data = ResponseData { result: 0.0 };
+        return Self {
+            api_version: String::from("v1"),
+            data: data,
+        };
+    }
 }
