@@ -54,12 +54,13 @@ server:
 
 ```yaml
 
-# Scan this file for changes every 30 seconds
 refresh_rate: 10 seconds
 
 appenders:
   stdout:
     kind: console
+    encoder:
+      pattern: "{h({d(%Y-%m-%d %H:%M:%S)})} | {h({l})} | {M} | {m}{n}"
 
 root:
   level: info
@@ -67,6 +68,8 @@ root:
     - stdout
 
 loggers:
-  app::backend::db:
+  actix_web::middleware::logger:
+    level: info
+  enma::handler:
     level: info
 ```

@@ -19,10 +19,23 @@ async fn total_pods(req: web::Json<model::Request>, newrelic: web::Data<Newrelic
     {
         Ok(result) => match result {
             NewrelicQueryResult::Ok(res) => match res.get_unique_count() {
-                Some(uniq) => HttpResponse::Ok().json(model::Response {
-                    api_version: String::from("v1"),
-                    data: model::ResponseData { result: uniq },
-                }),
+                Some(uniq) => {
+                    if uniq.eq(&0.0) {
+                        warn!(
+                            "Returning zero from newrelic with service: {}, and metric: {:?}",
+                            req.data.application_name.as_str(),
+                            metric
+                        );
+                        return HttpResponse::NotFound().json(model::Response {
+                            api_version: String::from("v1"),
+                            data: model::ResponseData { result: uniq },
+                        });
+                    }
+                    HttpResponse::Ok().json(model::Response {
+                        api_version: String::from("v1"),
+                        data: model::ResponseData { result: uniq },
+                    })
+                }
                 None => {
                     warn!(
                         "Returning null from newrelic with service: {}, and metric: {:?}",
