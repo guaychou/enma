@@ -1,13 +1,16 @@
 use {
-    crate::handler::model,
+    crate::handler::v1::model,
     crate::newrelic::{metric::Metric, model::NewrelicQueryResult, newrelic::Newrelic},
     actix_web::{post, web, HttpResponse},
     log::{error, warn},
 };
 
-#[post("/pods-total")]
-async fn total_pods(req: web::Json<model::Request>, newrelic: web::Data<Newrelic>) -> HttpResponse {
-    let metric = Metric::TotalPods;
+#[post("/cpu-used-core")]
+async fn cpu_used_core(
+    req: web::Json<model::Request>,
+    newrelic: web::Data<Newrelic>,
+) -> HttpResponse {
+    let metric = Metric::CpuUsedCore;
     match newrelic
         .go_query(
             req.data.application_name.as_str(),
@@ -18,24 +21,11 @@ async fn total_pods(req: web::Json<model::Request>, newrelic: web::Data<Newrelic
         .await
     {
         Ok(result) => match result {
-            NewrelicQueryResult::Ok(res) => match res.get_unique_count() {
-                Some(uniq) => {
-                    if uniq.eq(&0.0) {
-                        warn!(
-                            "Returning zero from newrelic with service: {}, and metric: {:?}",
-                            req.data.application_name.as_str(),
-                            metric
-                        );
-                        return HttpResponse::NotFound().json(model::Response {
-                            api_version: String::from("v1"),
-                            data: model::ResponseData { result: uniq },
-                        });
-                    }
-                    HttpResponse::Ok().json(model::Response {
-                        api_version: String::from("v1"),
-                        data: model::ResponseData { result: uniq },
-                    })
-                }
+            NewrelicQueryResult::Ok(res) => match res.get_average() {
+                Some(avg) => HttpResponse::Ok().json(model::Response {
+                    api_version: String::from("v1"),
+                    data: model::ResponseData { result: avg },
+                }),
                 None => {
                     warn!(
                         "Returning null from newrelic with service: {}, and metric: {:?}",

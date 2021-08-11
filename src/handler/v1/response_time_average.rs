@@ -1,16 +1,16 @@
 use {
-    crate::handler::model,
+    crate::handler::v1::model,
     crate::newrelic::{metric::Metric, model::NewrelicQueryResult, newrelic::Newrelic},
     actix_web::{post, web, HttpResponse},
     log::{error, warn},
 };
 
-#[post("/memory-heap-used")]
-async fn memory_heap_used(
+#[post("/response-time-average")]
+async fn response_time_average(
     req: web::Json<model::Request>,
     newrelic: web::Data<Newrelic>,
 ) -> HttpResponse {
-    let metric = Metric::MemoryHeapUsed;
+    let metric = Metric::ResponseTimeAverage;
     match newrelic
         .go_query(
             req.data.application_name.as_str(),
@@ -21,10 +21,10 @@ async fn memory_heap_used(
         .await
     {
         Ok(result) => match result {
-            NewrelicQueryResult::Ok(res) => match res.get_average() {
-                Some(avg) => HttpResponse::Ok().json(model::Response {
+            NewrelicQueryResult::Ok(res) => match res.get_result() {
+                Some(res) => HttpResponse::Ok().json(model::Response {
                     api_version: String::from("v1"),
-                    data: model::ResponseData { result: avg },
+                    data: model::ResponseData { result: res },
                 }),
                 None => {
                     warn!(

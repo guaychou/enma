@@ -1,16 +1,16 @@
 use {
-    crate::handler::model,
+    crate::handler::v1::model,
     crate::newrelic::{metric::Metric, model::NewrelicQueryResult, newrelic::Newrelic},
     actix_web::{post, web, HttpResponse},
     log::{error, warn},
 };
 
-#[post("/cpu-used-core")]
-async fn cpu_used_core(
+#[post("/memory-heap-used")]
+async fn memory_heap_used(
     req: web::Json<model::Request>,
     newrelic: web::Data<Newrelic>,
 ) -> HttpResponse {
-    let metric = Metric::CpuUsedCore;
+    let metric = Metric::MemoryHeapUsed;
     match newrelic
         .go_query(
             req.data.application_name.as_str(),

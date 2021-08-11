@@ -1,7 +1,7 @@
 use {
     crate::{
         config::Config,
-        handler::{
+        handler::v1::{
             cpu_requested_core::cpu_requested_core, cpu_used_core::cpu_used_core,
             memory_heap_used::memory_heap_used, response_time_average::response_time_average,
             thread_count::thread_count, throughput::throughput, total_pods::total_pods,

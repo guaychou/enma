@@ -1,16 +1,16 @@
 use {
-    crate::handler::model,
+    crate::handler::v1::model,
     crate::newrelic::{metric::Metric, model::NewrelicQueryResult, newrelic::Newrelic},
     actix_web::{post, web, HttpResponse},
     log::{error, warn},
 };
 
-#[post("/cpu-requested-core")]
-async fn cpu_requested_core(
+#[post("/thread-count")]
+async fn thread_count(
     req: web::Json<model::Request>,
     newrelic: web::Data<Newrelic>,
 ) -> HttpResponse {
-    let metric = Metric::CpuRquestedCore;
+    let metric = Metric::ThreadCount;
     match newrelic
         .go_query(
             req.data.application_name.as_str(),
@@ -23,7 +23,7 @@ async fn cpu_requested_core(
         Ok(result) => match result {
             NewrelicQueryResult::Ok(res) => match res.get_average() {
                 Some(avg) => HttpResponse::Ok().json(model::Response {
-                    api_version: String::from("v0"),
+                    api_version: String::from("v1"),
                     data: model::ResponseData { result: avg },
                 }),
                 None => {
