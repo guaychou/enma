@@ -1,0 +1,10 @@
+newrelic:
+  api_key: <YOUR_NEWRELIC_API_KEY>
+  account_id: <YOUR_NEWRELIC_ACCOUNT_ID>
+server:
+  port: 8080
+  buffer: 10
+  concurrency_limit: 100
+  rate_limit: 100
+  limiter_timeout: 10s
+  timeout: 10s
