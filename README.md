@@ -1,76 +1,36 @@
-# Ebisu [WIP]
+# Enma [WIP]
 
 ### What is this ? 
 
-#### My personal project to getting alert from rise to telegram
+#### My personal project to retrieving data from Newrelic 
 
-#### There are some metrics (prefix --> /api/v1)
-- alert 
-- alertwithmessage
+#### There are some metrics (prefix --> /v1/newrelic)
+- Cpu used core ( path: /cpu-used-core)
+- Cpu requested core ( path: /cpu-requested-core)
+- Thread Count (path: /thread-count)
+- Memory Heap ( path: /memory-heap-used ) --> Java Heap Memory
+- Throughput ( path: /throughput ) 
+- Total Pods K8s ( path: /pods-total)
+- Response time average (path: /response-time-average)
 
 ### Request Body
 ```yaml
 
 {
-    "service" : "malganis", #  min 3 , max 20 character
-    "message" : "test-testt" # only for alertwithmessage , min 5 character
-}
-
-```
-
-### Response Body
-
-#### Success
-```yaml
-{
-    "ok": true,
-    "result": {
-        "message_id": 61
+    "data": {
+        "application_name": "test-app",
+        "start_time" : "1 minute ago",
+        "end_time" : "now"
     }
 }
 
 ```
 
-#### Validation Error 
+### Response Body
 ```yaml
 {
-  "errors": {
-      "service": [
-          {
-              "code": "length",
-              "message": null,
-              "params": {
-                  "max": 20,
-                  "min": 3,
-                  "value": "ry"
-              }
-          }
-      ]}
+    "api_version": "v0",
+    "data": {
+        "result": 0.053074583
+    }
 }
-```
-
-
-### Example ebisu config
-
-```yaml
-telegram:
-  token: <YOUR_TELEGRAM_TOKEN>
-  chat_id: <YOUR_TELEGRAM_CHAT_ID>
-server:
-  port: 8080
-```
-
-
-### How to run
-
-#### Manual
-```shell
-$ ebisu --config.ebisu="<PATH_TO_EBISU_CONFIG>"
-```
-
-#### Using prebuilt docker image
-
-```shell
-$ docker run -it -p8080:8080 -v "<PATH_TO_EBISU_CONFIG>":/app/config/ebisu.yaml -v -d lordchou/ebisu:v0.2.0 \
-  ./ebisu --config.ebisu=./config/ebisu.yaml
-```
