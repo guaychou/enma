@@ -7,12 +7,12 @@ use crate::{
 };
 use axum::{extract::Extension, Json};
 
-// CPU Requested Core Handler
-pub async fn cpu_requested_cores_handler(
+// Memory heap used Handler
+pub async fn memory_heap_used_handler(
     JsonExtractor(req): JsonExtractor<Request>,
     Extension(newrelic): Extension<Newrelic>,
 ) -> Result<Json<Response>, AppError> {
-    let metric = Metric::CpuRquestedCore;
+    let metric = Metric::MemoryHeapUsed;
     let data = newrelic
         .go_query(
             req.data.application_name.as_str(),

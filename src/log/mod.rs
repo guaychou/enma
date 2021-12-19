@@ -15,18 +15,9 @@ pub fn log_init() {
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", "info")
     }
-
-    let jaeger_address = std::env::var("JAEGER_ADDRESS").unwrap_or(String::from("localhost:6831"));
-    let tracer = opentelemetry_jaeger::new_pipeline()
-        .with_service_name(env!("CARGO_PKG_NAME"))
-        .with_agent_endpoint(jaeger_address)
-        .install_batch(opentelemetry::runtime::Tokio)
-        .unwrap();
-    let opentelemetry = tracing_opentelemetry::layer().with_tracer(tracer);
     let collector = Registry::default()
         .with(EnvFilter::from_default_env())
-        .with(fmt_layer)
-        .with(opentelemetry);
+        .with(fmt_layer);
     LogTracer::init().expect("Failed to set logger");
     set_global_default(collector).expect("Failed to set subscriber");
     print_banner();

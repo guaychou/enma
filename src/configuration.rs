@@ -1,7 +1,7 @@
 use coult::{Config as VaultConfig, Vault};
-use std::env;
 use std::time::Duration;
-use {getset::Getters,log::{info,debug}, serde::Deserialize};
+use std::{env, fmt};
+use {getset::Getters, log::info, serde::Deserialize};
 
 #[derive(Debug, Deserialize, Getters, Clone)]
 pub struct NewrelicConfig {
@@ -11,7 +11,7 @@ pub struct NewrelicConfig {
     account_id: i32,
 }
 
-#[derive(Debug,Deserialize, Getters)]
+#[derive(Debug, Deserialize, Getters)]
 #[serde(default = "default_server_config")]
 pub struct ServerConfig {
     #[getset(get = "pub with_prefix")]
@@ -28,6 +28,12 @@ pub struct ServerConfig {
     #[getset(get = "pub with_prefix")]
     #[serde(with = "humantime_serde")]
     timeout: Duration,
+}
+
+impl fmt::Display for ServerConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "buffer: {} | concurrency limit: {} | rate limit: {} | limiter timeout: {}s | timeout: {}s", self.buffer, self.concurrency_limit, self.rate_limit, self.limiter_timeout.as_secs(), self.timeout.as_secs())
+    }
 }
 
 #[derive(Debug, Deserialize, Getters)]
@@ -66,7 +72,6 @@ pub async fn read_config() -> Config {
     );
     let vault = Vault::new(config).await.unwrap();
     let data = vault.get_secret::<Config>().await.unwrap();
-    debug!{"debug server config {:?}", data.server};
     info!("Config has been read from Vault");
     return data;
 }

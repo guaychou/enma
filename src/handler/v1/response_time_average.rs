@@ -7,12 +7,12 @@ use crate::{
 };
 use axum::{extract::Extension, Json};
 
-// CPU Requested Core Handler
-pub async fn cpu_requested_cores_handler(
+// Response time average Handler
+pub async fn response_time_average_handler(
     JsonExtractor(req): JsonExtractor<Request>,
     Extension(newrelic): Extension<Newrelic>,
 ) -> Result<Json<Response>, AppError> {
-    let metric = Metric::CpuRquestedCore;
+    let metric = Metric::ResponseTimeAverage;
     let data = newrelic
         .go_query(
             req.data.application_name.as_str(),
@@ -21,7 +21,7 @@ pub async fn cpu_requested_cores_handler(
             metric,
         )
         .await?
-        .get_average()
+        .get_result()
         .ok_or_else(|| AppError::NewrelicNull(req.data.application_name, metric))?;
     Ok(Response::set_response(data).into())
 }

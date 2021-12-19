@@ -1,4 +1,6 @@
 use crate::domain::newrelic::model::NewRelicErrorResponseModel;
+use crate::domain::newrelic::Metric;
+use crate::handler::v1::model::Response as ApplicationResponse;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -8,19 +10,13 @@ use reqwest::Error as RequestError;
 use serde_json::json;
 use std::convert::Infallible;
 use tower::BoxError;
-use validator::ValidationErrors;
+use tracing::error;
 
 #[derive(Debug)]
 pub enum AppError {
-    Validation(ValidationErrors),
     NewrelicError(NewRelicErrorResponseModel),
+    NewrelicNull(String, Metric),
     RequestError(RequestError),
-}
-
-impl From<ValidationErrors> for AppError {
-    fn from(inner: ValidationErrors) -> Self {
-        AppError::Validation(inner)
-    }
 }
 
 impl From<NewRelicErrorResponseModel> for AppError {
@@ -37,20 +33,21 @@ impl From<RequestError> for AppError {
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        let (status, error_message) = match self {
-            AppError::Validation(e) => (StatusCode::BAD_REQUEST, json!(e)),
+        let status = match self {
             AppError::NewrelicError(e) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, json!(e.get_error_msg()))
+                error!("Error from New Relic: {}", e.get_error_msg());
+                StatusCode::BAD_GATEWAY
             }
-            AppError::RequestError(_) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                json!("Request to telegram api is failed."),
-            ),
+            AppError::RequestError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::NewrelicNull(service_name, metric) => {
+                error!(
+                    "Returning zero / null from newrelic with service: {}, and metric: {:?}",
+                    service_name, metric
+                );
+                StatusCode::NOT_FOUND
+            }
         };
-        let body = Json(json!({
-            "code" : status.as_u16(),
-            "error": error_message,
-        }));
+        let body = Json(ApplicationResponse::default());
         (status, body).into_response()
     }
 }

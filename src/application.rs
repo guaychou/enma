@@ -1,13 +1,13 @@
 use crate::configuration::ServerConfig;
 use crate::domain::newrelic::Newrelic;
 use crate::error::handle_error;
-use crate::handler::v1;
+use crate::handler::{health, v1};
 use axum::error_handling::HandleErrorLayer;
 use axum::AddExtensionLayer;
 use axum::{
     extract::ConnectInfo,
     http::{Request, Response},
-    routing::post,
+    routing::{get, post},
     Router,
 };
 use hyper::Body;
@@ -22,7 +22,10 @@ use tower::{
 
 use tower_http::{trace::TraceLayer, ServiceBuilderExt};
 use tracing::Span;
+
 pub fn build(config: ServerConfig, newrelic: Newrelic) -> Router {
+    tracing::info!("Building enma application");
+    tracing::info!("Initialize HTTP tracing");
     let http_trace = TraceLayer::new_for_http()
         .make_span_with(|request: &Request<Body>| {
             tracing::info_span!(
@@ -36,10 +39,7 @@ pub fn build(config: ServerConfig, newrelic: Newrelic) -> Router {
                         .get::<ConnectInfo<SocketAddr>>()
                         .unwrap()
                 ),
-                x_real_ip = tracing::field::debug(
-                    request.headers().get("X-Real-IP")
-                )
-                
+                x_real_ip = tracing::field::debug(request.headers().get("X-Real-IP"))
             )
         })
         .on_response(|response: &Response<_>, latency: Duration, span: &Span| {
@@ -50,7 +50,7 @@ pub fn build(config: ServerConfig, newrelic: Newrelic) -> Router {
             span.record("ms", &tracing::field::display(latency.as_millis()));
             tracing::info!("response processed")
         });
-
+    tracing::info!("Initialize middleware stack | {}", config);
     let middleware_stack = ServiceBuilder::new()
         .layer(HandleErrorLayer::new(handle_error))
         .load_shed()
@@ -64,13 +64,27 @@ pub fn build(config: ServerConfig, newrelic: Newrelic) -> Router {
         .layer(http_trace)
         .layer(AddExtensionLayer::new(newrelic))
         .compression();
-
+    tracing::info!("Setting up router...");
     Router::new()
         .nest(
             "/v1/newrelic",
-            Router::new().route("/cpu-requested-cores", post(v1::cpu_requested_core_handler)),
+            Router::new()
+                .route(
+                    "/cpu-requested-cores",
+                    post(v1::cpu_requested_cores_handler),
+                )
+                .route("/cpu-used-cores", post(v1::cpu_used_cores_handler))
+                .route("/pods-total", post(v1::total_pods_handler))
+                .route("/thread-count", post(v1::thread_count_handler))
+                .route("/memory-heap-used", post(v1::memory_heap_used_handler))
+                .route("/throughput", post(v1::throughput_handler))
+                .route(
+                    "/response-time-average",
+                    post(v1::response_time_average_handler),
+                ),
         )
         .layer(middleware_stack)
+        .route("/health", get(health::health))
 }
 
 pub async fn shutdown_signal() {

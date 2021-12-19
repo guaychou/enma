@@ -19,6 +19,7 @@ async fn main() {
                 .into_make_service_with_connect_info::<SocketAddr, _>(),
         )
         .with_graceful_shutdown(application::shutdown_signal());
+    tracing::info!("Listening on {:?}", addr);
     if let Err(err) = server.await {
         tracing::error!("server error: {:?}", err);
     }
