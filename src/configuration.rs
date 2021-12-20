@@ -72,7 +72,7 @@ pub async fn read_config() -> Config {
         env::var("VAULT_ADDR").unwrap(),
         env::var("VAULT_PORT").unwrap().parse::<u16>().unwrap(),
         env::var("VAULT_CONFIG_PATH").unwrap(),
-        env::var("VAULT_TOKEN").unwrap(),
+        env::var("VAULT_TOKEN").expect("VAULT TOKEN environment variable cannot be found"),
     );
     let vault = Vault::new(config).await.unwrap();
     let data = vault.get_secret::<Config>().await.unwrap();
