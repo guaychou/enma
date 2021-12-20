@@ -6,7 +6,7 @@ use axum::error_handling::HandleErrorLayer;
 use axum::AddExtensionLayer;
 use axum::{
     extract::ConnectInfo,
-    http::{Request, Response},
+    http::{Request,Response},
     routing::{get, post},
     Router,
 };
@@ -66,6 +66,7 @@ pub fn build(config: ServerConfig, newrelic: Newrelic) -> Router {
         .compression();
     tracing::info!("Setting up router...");
     Router::new()
+        .route("/health", get(health::health))
         .nest(
             "/v1/newrelic",
             Router::new()
@@ -84,7 +85,6 @@ pub fn build(config: ServerConfig, newrelic: Newrelic) -> Router {
                 ),
         )
         .layer(middleware_stack)
-        .route("/health", get(health::health))
 }
 
 pub async fn shutdown_signal() {

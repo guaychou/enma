@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'master'
+      - 'to-axum'
 
 jobs:
   docker:
@@ -37,4 +38,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/ebisu:${{steps.version_check.outputs.releaseVersion}}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/enma:${{steps.version_check.outputs.releaseVersion}}

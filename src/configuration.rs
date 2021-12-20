@@ -1,7 +1,7 @@
 use coult::{Config as VaultConfig, Vault};
 use std::time::Duration;
 use std::{env, fmt};
-use {getset::Getters, log::info, serde::Deserialize};
+use {getset::Getters, serde::Deserialize};
 
 #[derive(Debug, Deserialize, Getters, Clone)]
 pub struct NewrelicConfig {
@@ -55,6 +55,9 @@ fn default_server_config() -> ServerConfig {
 }
 
 pub async fn read_config() -> Config {
+    if std::env::var("VAULT_PROTOCOL").is_err() {
+        std::env::set_var("VAULT_PROTOCOL", "http")
+    };
     if std::env::var("VAULT_ADDR").is_err() {
         std::env::set_var("VAULT_ADDR", "127.0.0.1")
     };
@@ -65,6 +68,7 @@ pub async fn read_config() -> Config {
         std::env::set_var("VAULT_CONFIG_PATH", "secret/config/enma")
     };
     let config = VaultConfig::new(
+        env::var("VAULT_PROTOCOL").unwrap(),
         env::var("VAULT_ADDR").unwrap(),
         env::var("VAULT_PORT").unwrap().parse::<u16>().unwrap(),
         env::var("VAULT_CONFIG_PATH").unwrap(),
@@ -72,6 +76,5 @@ pub async fn read_config() -> Config {
     );
     let vault = Vault::new(config).await.unwrap();
     let data = vault.get_secret::<Config>().await.unwrap();
-    info!("Config has been read from Vault");
     return data;
 }

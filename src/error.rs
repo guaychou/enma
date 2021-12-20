@@ -31,6 +31,7 @@ impl From<RequestError> for AppError {
     }
 }
 
+// Handle application error
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let status = match self {
@@ -52,6 +53,7 @@ impl IntoResponse for AppError {
     }
 }
 
+// Handle tower error
 pub async fn handle_error(error: BoxError) -> Result<impl IntoResponse, Infallible> {
     if error.is::<tower::timeout::error::Elapsed>() {
         return Ok((
