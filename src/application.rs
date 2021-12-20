@@ -10,7 +10,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use hyper::Body;
+use hyper::{Body, http::HeaderValue};
 use std::net::SocketAddr;
 use std::time::Duration;
 use tower::{
@@ -39,7 +39,7 @@ pub fn build(config: ServerConfig, newrelic: Newrelic) -> Router {
                         .get::<ConnectInfo<SocketAddr>>()
                         .unwrap()
                 ),
-                x_real_ip = tracing::field::debug(request.headers().get("X-Real-IP"))
+                x_real_ip = tracing::field::debug(request.headers().get("X-Real-IP").unwrap_or(&HeaderValue::from_static("None")))
             )
         })
         .on_response(|response: &Response<_>, latency: Duration, span: &Span| {
