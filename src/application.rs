@@ -39,7 +39,7 @@ pub fn build(config: ServerConfig, newrelic: Newrelic) -> Router {
                         .get::<ConnectInfo<SocketAddr>>()
                         .unwrap()
                 ),
-                x_real_ip = tracing::field::debug(request.headers().get("X-Real-IP").unwrap_or(&HeaderValue::from_static("None")))
+                x_real_ip = tracing::field::debug(request.headers().get("X-Real-IP").unwrap_or(&HeaderValue::from_static("")))
             )
         })
         .on_response(|response: &Response<_>, latency: Duration, span: &Span| {
