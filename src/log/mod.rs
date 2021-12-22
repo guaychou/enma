@@ -7,14 +7,19 @@ use tracing_subscriber::{
     Registry,
 };
 use {env, figlet_rs::FIGfont, log::info};
-
 pub fn log_init() {
     let time_format = LocalTime::rfc_3339();
-    let tracing_format = format().with_timer(time_format);
-    let fmt_layer = tracing_subscriber::fmt::Layer::default().event_format(tracing_format);
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", "info")
     }
+    if std::env::var("LOG_COLOR").is_err() {
+        std::env::set_var("LOG_COLOR", "false")
+    }
+    let tracing_format = format().with_timer(time_format);
+    let fmt_layer = tracing_subscriber::fmt::Layer::default()
+        .event_format(tracing_format)
+        .with_ansi(std::env::var("LOG_COLOR").unwrap().parse::<bool>().unwrap());
+    
     let collector = Registry::default()
         .with(EnvFilter::from_default_env())
         .with(fmt_layer);
