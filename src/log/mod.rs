@@ -19,7 +19,7 @@ pub fn log_init() {
     let fmt_layer = tracing_subscriber::fmt::Layer::default()
         .event_format(tracing_format)
         .with_ansi(std::env::var("LOG_COLOR").unwrap().parse::<bool>().unwrap());
-    
+
     let collector = Registry::default()
         .with(EnvFilter::from_default_env())
         .with(fmt_layer);
