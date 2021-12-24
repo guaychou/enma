@@ -15,11 +15,10 @@ pub fn log_init() {
     if std::env::var("LOG_COLOR").is_err() {
         std::env::set_var("LOG_COLOR", "false")
     }
-    let tracing_format = format().with_timer(time_format);
-    let fmt_layer = tracing_subscriber::fmt::Layer::default()
-        .event_format(tracing_format)
+    let tracing_format = format()
+        .with_timer(time_format)
         .with_ansi(std::env::var("LOG_COLOR").unwrap().parse::<bool>().unwrap());
-
+    let fmt_layer = tracing_subscriber::fmt::Layer::default().event_format(tracing_format);
     let collector = Registry::default()
         .with(EnvFilter::from_default_env())
         .with(fmt_layer);
