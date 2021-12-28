@@ -5,20 +5,27 @@ use crate::handler::{health, v1};
 use axum::error_handling::HandleErrorLayer;
 use axum::AddExtensionLayer;
 use axum::{
-    extract::ConnectInfo,
+    extract::{ConnectInfo, MatchedPath},
     http::{Request, Response},
+    response::IntoResponse,
     routing::{get, post},
     Router,
 };
 use hyper::{http::HeaderValue, Body};
-use std::net::SocketAddr;
-use std::time::Duration;
+use std::{
+    future::ready,
+    net::SocketAddr,
+    time::{Duration, Instant},
+};
 use tower::{
     buffer::BufferLayer,
     limit::{ConcurrencyLimitLayer, RateLimitLayer},
     timeout::TimeoutLayer,
     ServiceBuilder,
 };
+
+use axum_extra::middleware::{self, Next};
+use metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle};
 
 use tower_http::{trace::TraceLayer, ServiceBuilderExt};
 use tracing::Span;
@@ -70,8 +77,10 @@ pub fn build(config: ServerConfig, newrelic: Newrelic) -> Router {
         .layer(AddExtensionLayer::new(newrelic))
         .compression();
     tracing::info!("Setting up router...");
+    let recorder_handle = setup_metrics_recorder();
     Router::new()
         .route("/health", get(health::health))
+        .route("/metrics", get(move || ready(recorder_handle.render())))
         .nest(
             "/v1/newrelic",
             Router::new()
@@ -89,6 +98,7 @@ pub fn build(config: ServerConfig, newrelic: Newrelic) -> Router {
                     post(v1::response_time_average_handler),
                 ),
         )
+        .route_layer(middleware::from_fn(track_metrics))
         .layer(middleware_stack)
 }
 
@@ -107,4 +117,48 @@ pub async fn shutdown_signal() {
         _ = tokio::signal::ctrl_c() => {},
     }
     tracing::info!("signal received, starting graceful shutdown");
+}
+
+// Setup metrics recorder
+fn setup_metrics_recorder() -> PrometheusHandle {
+    const EXPONENTIAL_SECONDS: &[f64] = &[
+        0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0,
+    ];
+
+    let recorder = PrometheusBuilder::new()
+        .set_buckets_for_metric(
+            Matcher::Full("enma_http_requests_duration_seconds".to_string()),
+            EXPONENTIAL_SECONDS,
+        )
+        .build();
+    let recorder_handle = recorder.handle();
+    metrics::set_boxed_recorder(Box::new(recorder)).unwrap();
+    recorder_handle
+}
+
+// Registering and add request count to prometheus handler
+async fn track_metrics<B>(req: Request<B>, next: Next<B>) -> impl IntoResponse {
+    let start = Instant::now();
+    let path = if let Some(matched_path) = req.extensions().get::<MatchedPath>() {
+        matched_path.as_str().to_owned()
+    } else {
+        req.uri().path().to_owned()
+    };
+    let method = req.method().clone();
+
+    let response = next.run(req).await;
+
+    let latency = start.elapsed().as_secs_f64();
+    let status = response.status().as_u16().to_string();
+
+    let labels = [
+        ("method", method.to_string()),
+        ("path", path),
+        ("status", status),
+    ];
+
+    metrics::increment_counter!("enma_http_requests_total", &labels);
+    metrics::histogram!("enma_http_requests_duration_seconds", latency, &labels);
+
+    response
 }
