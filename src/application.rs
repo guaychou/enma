@@ -11,6 +11,8 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use axum_server::Handle;
+use tokio::time::sleep;
 use hyper::{http::HeaderValue, Body};
 use std::{
     future::ready,
@@ -30,7 +32,12 @@ use metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle};
 use tower_http::{trace::TraceLayer, ServiceBuilderExt};
 use tracing::Span;
 
-pub fn build(config: ServerConfig, newrelic: Newrelic) -> Router {
+pub struct Application {
+    pub router: Router,
+    pub handle: Handle,
+}
+
+pub fn build(config: ServerConfig, newrelic: Newrelic) -> Application {
     tracing::info!("Building enma application");
     tracing::info!("Initialize HTTP tracing");
     let http_trace = TraceLayer::new_for_http()
@@ -78,7 +85,7 @@ pub fn build(config: ServerConfig, newrelic: Newrelic) -> Router {
         .compression();
     tracing::info!("Setting up router...");
     let recorder_handle = setup_metrics_recorder();
-    Router::new()
+    let router = Router::new()
         .route("/health", get(health::health))
         .route("/metrics", get(move || ready(recorder_handle.render())))
         .nest(
@@ -99,10 +106,15 @@ pub fn build(config: ServerConfig, newrelic: Newrelic) -> Router {
                 ),
         )
         .route_layer(middleware::from_fn(track_metrics))
-        .layer(middleware_stack)
+        .layer(middleware_stack);
+        let handle = Handle::new();
+        Application {
+            router: router,
+            handle: handle
+        }
 }
 
-pub async fn shutdown_signal() {
+pub async fn graceful_shutdown(handle: Handle) {
     use std::io;
     use tokio::signal::unix::SignalKind;
     async fn terminate() -> io::Result<()> {
@@ -117,6 +129,14 @@ pub async fn shutdown_signal() {
         _ = tokio::signal::ctrl_c() => {},
     }
     tracing::info!("signal received, starting graceful shutdown");
+    // Signal the server to shutdown using Handle.
+    handle.graceful_shutdown(Some(Duration::from_secs(30)));
+
+    // Print alive connection count every second.
+    loop {
+        sleep(Duration::from_secs(1)).await;
+        tracing::info!("alive connections: {}", handle.connection_count());
+    }
 }
 
 // Setup metrics recorder
@@ -129,8 +149,7 @@ fn setup_metrics_recorder() -> PrometheusHandle {
         .set_buckets_for_metric(
             Matcher::Full("enma_http_requests_duration_seconds".to_string()),
             EXPONENTIAL_SECONDS,
-        )
-        .build();
+        ).expect("Setup prometheus builder error").build_recorder();
     let recorder_handle = recorder.handle();
     metrics::set_boxed_recorder(Box::new(recorder)).unwrap();
     recorder_handle

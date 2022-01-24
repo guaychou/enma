@@ -1,6 +1,6 @@
 [package]
 name = "enma"
-version = "0.3.3"
+version = "0.3.4"
 edition = "2021"
 
 [lib]
@@ -28,8 +28,9 @@ tracing-log = "0.1.2"
 hyper = "0.14"
 time  = {version = "0.3", features = [] }
 coult = "0.1.4"
-metrics = "0.17"
-metrics-exporter-prometheus = "0.7"
+metrics = "0.18"
+metrics-exporter-prometheus = "0.8"
+axum-server = "0.3"
 
 [profile.release]
 opt-level = "z"
