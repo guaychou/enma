@@ -9,13 +9,13 @@ use enma::application::graceful_shutdown;
 async fn main() {
     log::log_init();
     let config = configuration::read_config().await;
-    let telegram = Newrelic::new(config.newrelic);
+    let newrelic = Newrelic::new(config.newrelic);
     let addr: SocketAddr = SocketAddr::from((
         "0.0.0.0".parse::<std::net::Ipv4Addr>().unwrap(),
         *config.server.get_port(),
     ));
 
-    let apps = application::build(config.server, telegram);
+    let apps = application::build(config.server, newrelic);
     tokio::spawn(graceful_shutdown(apps.handle.clone()));
     let server = axum_server::bind(addr)
         .handle(apps.handle)
