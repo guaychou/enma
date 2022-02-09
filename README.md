@@ -13,6 +13,26 @@
 - Total Pods K8s ( path: /pods-total)
 - Response time average (path: /response-time-average)
 
+
+### Example Vault configuration
+```json
+{
+  "newrelic": {
+    "account_id": 00000,
+    "api_key": "xxxxx"
+  },
+  "server": {
+    "buffer": 10,
+    "concurrency_limit": 100,
+    "limiter_timeout": "10s",
+    "port": 8080,
+    "rate_limit": 100,
+    "timeout": "10s"
+  }
+}
+
+```
+
 ### Request Body
 ```yaml
 
@@ -34,3 +54,4 @@
         "result": 0.053074583
     }
 }
+
