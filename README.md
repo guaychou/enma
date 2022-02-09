@@ -27,7 +27,8 @@
     "limiter_timeout": "10s",
     "port": 8080,
     "rate_limit": 100,
-    "timeout": "10s"
+    "timeout": "10s",
+    "metrics" : false
   }
 }
 
