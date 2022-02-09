@@ -28,6 +28,8 @@ pub struct ServerConfig {
     #[getset(get = "pub with_prefix")]
     #[serde(with = "humantime_serde")]
     timeout: Duration,
+    #[getset(get = "pub with_prefix")]
+    metrics: bool,
 }
 
 impl fmt::Display for ServerConfig {
@@ -51,6 +53,7 @@ fn default_server_config() -> ServerConfig {
         rate_limit: 5,
         limiter_timeout: Duration::from_secs(10),
         timeout: Duration::from_secs(10),
+        metrics: false,
     }
 }
 

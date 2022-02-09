@@ -1,4 +1,4 @@
-FROM rust:1.57.0-bullseye as build-env
+FROM rust:1.58.1-bullseye as build-env
 WORKDIR /app
 ADD . /app
 RUN RUSTFLAGS="-C link-arg=-s --cfg unsound_local_offset" cargo build --release

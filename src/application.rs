@@ -12,13 +12,13 @@ use axum::{
     Router,
 };
 use axum_server::Handle;
-use tokio::time::sleep;
 use hyper::{http::HeaderValue, Body};
 use std::{
     future::ready,
     net::SocketAddr,
     time::{Duration, Instant},
 };
+use tokio::time::sleep;
 use tower::{
     buffer::BufferLayer,
     limit::{ConcurrencyLimitLayer, RateLimitLayer},
@@ -84,10 +84,8 @@ pub fn build(config: ServerConfig, newrelic: Newrelic) -> Application {
         .layer(AddExtensionLayer::new(newrelic))
         .compression();
     tracing::info!("Setting up router...");
-    let recorder_handle = setup_metrics_recorder();
     let router = Router::new()
         .route("/health", get(health::health))
-        .route("/metrics", get(move || ready(recorder_handle.render())))
         .nest(
             "/v1/newrelic",
             Router::new()
@@ -105,13 +103,22 @@ pub fn build(config: ServerConfig, newrelic: Newrelic) -> Application {
                     post(v1::response_time_average_handler),
                 ),
         )
-        .route_layer(middleware::from_fn(track_metrics))
         .layer(middleware_stack);
-        let handle = Handle::new();
-        Application {
-            router: router,
-            handle: handle
-        }
+    let router = if *config.get_metrics() {
+        tracing::info!("Prometheus Metrics is Enabled...");
+        let recorder_handle = setup_metrics_recorder();
+        router
+            .route_layer(middleware::from_fn(track_metrics))
+            .route("/metrics", get(move || ready(recorder_handle.render())))
+    } else {
+        tracing::info!("Prometheus Metrics is Disabled...");
+        router
+    };
+    let handle = Handle::new();
+    Application {
+        router: router,
+        handle: handle,
+    }
 }
 
 pub async fn graceful_shutdown(handle: Handle) {
@@ -149,7 +156,9 @@ fn setup_metrics_recorder() -> PrometheusHandle {
         .set_buckets_for_metric(
             Matcher::Full("enma_http_requests_duration_seconds".to_string()),
             EXPONENTIAL_SECONDS,
-        ).expect("Setup prometheus builder error").build_recorder();
+        )
+        .expect("Setup prometheus builder error")
+        .build_recorder();
     let recorder_handle = recorder.handle();
     metrics::set_boxed_recorder(Box::new(recorder)).unwrap();
     recorder_handle
